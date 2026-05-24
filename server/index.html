@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Secret Holder — SSS Tool</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d2e;
+      --surface2: #22263a;
+      --accent: #6c8eff;
+      --accent2: #a78bfa;
+      --success: #34d399;
+      --warning: #fbbf24;
+      --danger: #f87171;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --border: #2d3148;
+      --radius: 10px;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px 16px 60px;
+    }
+
+    h1 { text-align: center; font-size: 1.6rem; margin-bottom: 6px; letter-spacing: .5px; }
+    h1 span { color: var(--accent); }
+    .subtitle { text-align: center; color: var(--muted); font-size: .88rem; margin-bottom: 28px; }
+
+    .container { max-width: 760px; margin: 0 auto; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 4px; background: var(--surface); border-radius: var(--radius); padding: 5px; margin-bottom: 24px; }
+    .tab-btn {
+      flex: 1; padding: 10px; border: none; border-radius: 7px;
+      background: transparent; color: var(--muted);
+      font-size: .95rem; font-weight: 600; cursor: pointer; transition: all .2s;
+    }
+    .tab-btn.active { background: var(--accent); color: #fff; }
+    .tab-btn:not(.active):hover { background: var(--surface2); color: var(--text); }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* Form elements */
+    label { display: block; font-size: .85rem; font-weight: 600; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .5px; }
+    textarea, input[type="number"], input[type="text"] {
+      width: 100%; padding: 12px 14px;
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: var(--radius); color: var(--text);
+      font-size: .95rem; font-family: inherit;
+      transition: border-color .2s;
+      resize: vertical;
+    }
+    textarea:focus, input:focus { outline: none; border-color: var(--accent); }
+    textarea { font-family: monospace; min-height: 90px; }
+
+    .row { display: flex; gap: 16px; margin-bottom: 18px; }
+    .row > * { flex: 1; }
+    .field { margin-bottom: 18px; }
+
+    .hint { font-size: .78rem; color: var(--muted); margin-top: 5px; }
+
+    /* Buttons */
+    .btn {
+      padding: 11px 22px; border: none; border-radius: var(--radius);
+      font-size: .95rem; font-weight: 700; cursor: pointer; transition: all .15s;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #8aa3ff; }
+    .btn-success { background: var(--success); color: #064e3b; }
+    .btn-success:hover:not(:disabled) { background: #6ee7b7; }
+    .btn-sm { padding: 6px 12px; font-size: .8rem; }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+
+    /* Card */
+    .card {
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: var(--radius); padding: 18px; margin-bottom: 14px;
+    }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .card-title { font-weight: 700; font-size: .95rem; color: var(--accent2); }
+
+    .share-index {
+      display: inline-block; background: var(--accent); color: #fff;
+      font-weight: 700; font-size: .75rem; border-radius: 5px; padding: 2px 8px;
+      margin-bottom: 8px;
+    }
+
+    .share-text {
+      font-family: monospace; font-size: .82rem; word-break: break-all;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 6px; padding: 10px; color: var(--success);
+      user-select: all;
+    }
+
+    .copy-feedback { font-size: .75rem; color: var(--success); margin-left: 8px; opacity: 0; transition: opacity .3s; }
+    .copy-feedback.show { opacity: 1; }
+
+    /* QR placeholder */
+    .qr-wrap { text-align: center; margin-top: 12px; }
+    .qr-wrap canvas { border-radius: 6px; background: #fff; padding: 6px; }
+
+    /* Back-off banner */
+    #backoff-banner {
+      background: #3b1f1f; border: 1.5px solid var(--danger);
+      border-radius: var(--radius); padding: 14px 18px;
+      margin-bottom: 18px; display: none;
+    }
+    #backoff-banner.visible { display: flex; align-items: center; gap: 12px; }
+    #backoff-icon { font-size: 1.4rem; }
+    #backoff-text { flex: 1; font-size: .92rem; }
+    #backoff-counter { font-size: 1.5rem; font-weight: 700; color: var(--danger); min-width: 52px; text-align: right; }
+
+    /* Result box */
+    #result-box {
+      background: #0b2818; border: 1.5px solid var(--success);
+      border-radius: var(--radius); padding: 16px 18px;
+      margin-top: 20px; display: none;
+    }
+    #result-box.visible { display: block; }
+    #result-box .result-label { font-size: .8rem; font-weight: 700; color: var(--success); text-transform: uppercase; margin-bottom: 8px; }
+    #result-secret {
+      font-family: monospace; font-size: 1.05rem; word-break: break-all;
+      color: var(--text); background: var(--surface2); padding: 12px;
+      border-radius: 6px; user-select: all;
+    }
+    #result-clear-bar { margin-top: 10px; font-size: .78rem; color: var(--muted); }
+    #clear-countdown { color: var(--warning); font-weight: 700; }
+
+    /* Reconstruct share inputs */
+    .recon-share { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 12px; }
+    .recon-share textarea { min-height: 60px; font-family: monospace; font-size: .82rem; }
+    .recon-num {
+      min-width: 28px; height: 28px; border-radius: 50%;
+      background: var(--accent); color: #fff; font-weight: 700; font-size: .82rem;
+      display: flex; align-items: center; justify-content: center; margin-top: 10px; flex-shrink: 0;
+    }
+
+    .error-msg { color: var(--danger); font-size: .88rem; margin-top: 10px; min-height: 20px; }
+    .success-msg { color: var(--success); font-size: .88rem; margin-top: 10px; }
+
+    #shares-output { margin-top: 22px; }
+    .dest-tag {
+      display: inline-block; font-size: .72rem; color: var(--muted);
+      border: 1px solid var(--border); border-radius: 4px; padding: 1px 7px; margin-left: 8px;
+    }
+
+    .section-title {
+      font-size: 1rem; font-weight: 700; color: var(--accent2);
+      margin-bottom: 16px; padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .info-box {
+      background: #1a2340; border: 1.5px solid #2d3f6e;
+      border-radius: var(--radius); padding: 14px 16px; margin-bottom: 22px;
+      font-size: .85rem; color: var(--muted); line-height: 1.6;
+    }
+    .info-box strong { color: var(--text); }
+
+    .attempt-badge {
+      display: inline-block; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 20px; padding: 3px 12px; font-size: .8rem; color: var(--muted); margin-bottom: 14px;
+    }
+    .attempt-badge span { color: var(--danger); font-weight: 700; }
+
+    /* ── Hybrid tab ───────────────────────────────────── */
+    .workflow {
+      display: flex; flex-direction: column; gap: 0; margin: 0 0 24px;
+      position: relative;
+    }
+    .wf-step {
+      display: flex; gap: 16px; align-items: flex-start;
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: var(--radius); padding: 16px 18px; margin-bottom: 4px;
+      transition: border-color .2s;
+    }
+    .wf-step.done { border-color: var(--success); }
+    .wf-step.done .wf-circle { background: var(--success); color: #064e3b; }
+    .wf-circle {
+      min-width: 36px; height: 36px; border-radius: 50%;
+      background: var(--accent); color: #fff; font-weight: 700; font-size: 1rem;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px;
+    }
+    .wf-content { flex: 1; }
+    .wf-title { font-weight: 700; font-size: .98rem; margin-bottom: 4px; }
+    .wf-desc { font-size: .84rem; color: var(--muted); line-height: 1.55; }
+    .wf-desc a { color: var(--accent); }
+    .wf-check {
+      width: 20px; height: 20px; border-radius: 4px;
+      border: 2px solid var(--border); background: transparent;
+      cursor: pointer; flex-shrink: 0; margin-top: 8px; appearance: none;
+      position: relative; transition: all .15s;
+    }
+    .wf-check:checked { background: var(--success); border-color: var(--success); }
+    .wf-check:checked::after { content: '✓'; position: absolute; top: -2px; left: 2px; color: #064e3b; font-size: .85rem; font-weight: 900; }
+
+    .arch-diagram {
+      background: var(--surface2); border: 1.5px solid var(--border);
+      border-radius: var(--radius); padding: 20px; margin: 0 0 24px;
+      font-family: monospace; font-size: .82rem; line-height: 1.8;
+      color: var(--muted); overflow-x: auto;
+    }
+    .arch-diagram .hl { color: var(--accent2); font-weight: 700; }
+    .arch-diagram .hl2 { color: var(--success); }
+    .arch-diagram .hl3 { color: var(--warning); }
+
+    .checklist-progress {
+      background: var(--surface2); border-radius: 20px; height: 8px; margin-bottom: 6px;
+      overflow: hidden;
+    }
+    .checklist-progress-bar {
+      height: 100%; background: linear-gradient(90deg, var(--accent), var(--success));
+      border-radius: 20px; transition: width .4s ease;
+      width: 0%;
+    }
+    .progress-label { font-size: .78rem; color: var(--muted); margin-bottom: 18px; }
+    .progress-label span { color: var(--success); font-weight: 700; }
+
+    .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .pill {
+      font-size: .75rem; padding: 3px 10px; border-radius: 20px;
+      border: 1px solid var(--border); color: var(--muted);
+    }
+    .pill.cloud { border-color: #3b82f6; color: #93c5fd; }
+    .pill.key   { border-color: #f59e0b; color: #fde68a; }
+    .pill.print { border-color: #10b981; color: #6ee7b7; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>🔐 <span>Secret Holder</span> — SSS Tool</h1>
+  <p class="subtitle">Shamir's Secret Sharing · Client-side only · No data leaves your browser</p>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('split')">✂️ Split Secret</button>
+    <button class="tab-btn" onclick="switchTab('reconstruct')">🔗 Reconstruct Secret</button>
+    <button class="tab-btn" onclick="switchTab('hybrid')">🔀 Hybrid Setup</button>
+  </div>
+
+  <!-- ═══════════════  SPLIT TAB  ═══════════════ -->
+  <div id="tab-split" class="tab-panel active">
+    <div class="info-box">
+      Enter your secret (e.g. a master password or passphrase). Choose how many total shares (<strong>N</strong>) to
+      create and how many are required to reconstruct (<strong>K</strong>). Give each share to a different
+      safe location. <strong>No single share reveals anything.</strong>
+    </div>
+
+    <div class="section-title">1 · Enter your secret</div>
+    <div class="field">
+      <label for="secret-input">Secret (password, passphrase, note…)</label>
+      <textarea id="secret-input" placeholder="Type or paste your secret here…" autocomplete="off" spellcheck="false"></textarea>
+    </div>
+
+    <div class="section-title">2 · Configure shares</div>
+    <div class="row">
+      <div>
+        <label for="n-input">Total shares (N)</label>
+        <input type="number" id="n-input" value="5" min="2" max="20" />
+        <div class="hint">How many shares to generate (2–20)</div>
+      </div>
+      <div>
+        <label for="k-input">Required to reconstruct (K)</label>
+        <input type="number" id="k-input" value="3" min="2" max="20" />
+        <div class="hint">Minimum shares needed (≤ N)</div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" onclick="doSplit()">✂️ Generate Shares</button>
+    <div id="split-error" class="error-msg"></div>
+
+    <div id="shares-output"></div>
+  </div>
+
+  <!-- ═══════════════  RECONSTRUCT TAB  ═══════════════ -->
+  <div id="tab-reconstruct" class="tab-panel">
+    <div class="info-box">
+      Paste any <strong>K shares</strong> (in any order) to reconstruct the secret. Failed attempts trigger
+      an exponential back-off delay stored in this browser. Clearing browser storage resets the counter —
+      but the delay is your first line of defence against casual brute-force.
+    </div>
+
+    <div id="backoff-banner">
+      <div id="backoff-icon">⏳</div>
+      <div id="backoff-text">Too many failed attempts. Please wait before trying again.</div>
+      <div id="backoff-counter">—</div>
+    </div>
+
+    <div class="section-title">Paste your shares</div>
+    <div id="recon-inputs"></div>
+
+    <div class="row" style="margin-top:4px; align-items:center; flex-wrap:wrap; gap:10px">
+      <div>
+        <label for="k-recon-input" style="display:inline; margin-right:8px">Number of shares to enter (K):</label>
+        <input type="number" id="k-recon-input" value="3" min="2" max="20" style="width:80px; display:inline-block"
+               oninput="buildReconInputs()" />
+      </div>
+    </div>
+
+    <div style="margin-top:18px">
+      <div class="attempt-badge">Failed attempts: <span id="attempt-count">0</span></div><br/>
+      <button class="btn btn-success" id="recon-btn" onclick="doReconstruct()">🔗 Reconstruct Secret</button>
+      <span id="recon-error" class="error-msg" style="display:inline-block; margin-left:12px"></span>
+    </div>
+
+    <div id="result-box">
+      <div class="result-label">✅ Reconstructed Secret</div>
+      <div id="result-secret"></div>
+      <div id="result-clear-bar">Auto-clearing in <span id="clear-countdown">30</span>s &nbsp;·&nbsp;
+        <a href="#" onclick="clearResult(); return false;" style="color:var(--muted)">Clear now</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════  HYBRID SETUP TAB  ═══════════════ -->
+  <div id="tab-hybrid" class="tab-panel">
+
+    <div class="info-box">
+      The <strong>Hybrid Approach</strong> combines two layers of protection:
+      a <strong>KeePass vault</strong> (the actual password store, synced to multiple clouds) and
+      <strong>Shamir's SSS</strong> (the master password split into shares). To unlock everything
+      you need any K shares → reconstruct master password → open vault.
+    </div>
+
+    <!-- Architecture diagram -->
+    <div class="section-title">Architecture Overview</div>
+    <div class="arch-diagram">
+<span class="hl">┌─────────────────────────────────────────────────────────┐</span>
+<span class="hl">│           KeePass  .kdbx  Vault  (AES-256)              │</span>
+<span class="hl">│          All your passwords live here                   │</span>
+<span class="hl">└──────────────┬──────────────────────────────────────────┘</span>
+               │  synced via rclone / manual upload
+   ┌───────────┼───────────┐
+   ▼           ▼           ▼
+<span class="hl2">Google Drive  Dropbox   iCloud Drive</span>   ← 3 independent clouds
+
+<span class="hl">KeePass Master Password</span>  (you never store this directly)
+   │
+   │  split 3-of-5 with  ✂️ Split Secret  tab
+   ├─ <span class="hl3">Share S1</span> → Google Drive text file
+   ├─ <span class="hl3">Share S2</span> → Yahoo Mail saved draft
+   ├─ <span class="hl3">Share S3</span> → Printed QR  (physical safe)
+   ├─ <span class="hl3">Share S4</span> → Trusted family member
+   └─ <span class="hl3">Share S5</span> → iCloud Note
+
+<span class="hl2">To unlock:</span>  open this tool → 🔗 Reconstruct → enter any 3 shares
+          → copy master password → open KeePass vault → done ✓
+    </div>
+
+    <!-- Progress checklist -->
+    <div class="section-title">Setup Checklist</div>
+    <div class="checklist-progress"><div class="checklist-progress-bar" id="progress-bar"></div></div>
+    <div class="progress-label"><span id="progress-text">0 / 9</span> steps completed</div>
+
+    <div class="workflow" id="hybrid-checklist">
+
+      <div class="wf-step" id="wf-0">
+        <div class="wf-circle">1</div>
+        <div class="wf-content">
+          <div class="wf-title">Install KeePass / KeePassXC</div>
+          <div class="wf-desc">
+            Download <a href="https://keepassxc.org" target="_blank">KeePassXC</a> (cross-platform, open-source).
+            Available for macOS, Windows, Linux, with browser extension support.<br/>
+            <div class="pill-row">
+              <span class="pill">macOS: brew install --cask keepassxc</span>
+              <span class="pill">Windows: winget install KeePassXCTeam.KeePassXC</span>
+            </div>
+          </div>
+        </div>
+        <input type="checkbox" class="wf-check" onchange="updateProgress()" />
+      </div>
+
+      <div class="wf-step" id="wf-1">
+        <div class="wf-circle">2</div>
+        <div class="wf-content">
+          <div class="wf-title">Create a new KeePass vault (.kdbx)</div>
+          <div class="wf-desc">
+            Open KeePassXC → <em>New Database</em>. Choose a strong master password
+            (e.g. 5 random words from a dice roll / passphrase generator).
+            Use <strong>Argon2id</strong> key derivation (default in KeePassXC 2.7+) with at least 1 second
+            unlock delay — this is your built-in brute-force protection.<br/>
+            Save the file as <code>vault.kdbx</code> in a local folder.
+            <div class="pill-row">
+              <span class="pill key">⚠️ Do NOT forget this password — it will be split next</span>
+            </div>
+          </div>
+        </div>
+        <input type="checkbox" class="wf-check" onchange="updateProgress()" />
+      </div>
+
+      <div class="wf-step" id="wf-2">
+        <div class="wf-circle">3</div>
+        <div class="wf-content">
+          <div class="wf-title">Migrate your passwords into the vault</div>
+          <div class="wf-desc">
+            Add all your existing passwords to KeePass entries. You can import from:
+            <div class="pill-row">
+              <span class="pill">Chrome → Settings → Passwords → Export CSV</span>
+              <span class="pill">Safari → Passwords → Export</span>
+              <span class="pill">1Password / LastPass → File → Export</span>
+            </div>
+            In KeePassXC: <em>Database → Import → CSV</em> and map columns.
+          </div>
+        </div>
+        <input type="checkbox" class="wf-check" onchange="updateProgress()" />
+      </div>
+
+      <div class="wf-step" id="wf-3">
+        <div class="wf-circle">4</div>
+        <div class="wf-content">
+          <div class="wf-title">Install rclone &amp; configure cloud remotes</div>
+          <div class="wf-desc">
+            <a href="https://rclone.org/install/" target="_blank">rclone</a> syncs files to 40+ cloud providers.
+            Run <code>rclone config</code> and add remotes for each cloud you want:
+            <div class="pill-row">
+              <span class="pill cloud">gdrive: — Google Drive</span>
+              <span class="pill cloud">dropbox: — Dropbox</span>
+              <span class="pill cloud">icloud: — iCloud Drive (WebDAV)</span>
+              <span class="pill cloud">onedrive: — OneDrive</span>
+            </div>
+            Guide: <a href="https://rclone.org/drive/" target="_blank">rclone Google Drive setup</a>
+          </div>
+        </div>
+        <input type="checkbox" class="wf-check" onchange="updateProgress()" />
+      </div>
+
+      <div class="wf-step" id="wf-4">
+        <div class="wf-circle">5</div>
+        <div class="wf-content">
+          <div class="wf-title">Run the vault sync script</div>
+          <div class="wf-desc">
+            Use <code>sync-vault.sh</code> (in this folder) to push <code>vault.kdbx</code> to all configured clouds.
+            Run it after every update to your vault.<br/>
+            <div class="pill-row">
+              <span class="pill">bash sync-vault.sh /path/to/vault.kdbx</span>
+            </div>
+            The script copies to Google Drive, Dropbox, and iCloud simultaneously with checksums verified.
+            Set up a cron job or a file-watcher to auto-sync on save.
+          </div>
+        </div>
+        <input type="checkbox" class="wf-check" onchange="updateProgress()" />
+      </div>
+
+      <div class="wf-step" id="wf-5">
+        <div class="wf-circle">6</div>
+        <div class="wf-content">
+          <div class="wf-title">Split the KeePass master password (this tool)</div>
+          <div class="wf-desc">
+            Go to the <strong>✂️ Split Secret</strong> tab. Enter the KeePass master password.
+            Set <strong>N = 5</strong>, <strong>K = 3</strong>. Click Generate Shares.
+            You will get 5 share strings — each is meaningless on its own.
+            <div class="pill-row">
+              <span class="pill key">Recommended: 3-of-5 (lose any 2 and still recover)</span>
+            </div>
+          </div>
+        </div>
+        <input type="checkbox" class="wf-check" onchange="updateProgress()" />
+      </div>
+
+      <div class="wf-step" id="wf-6">
+        <div class="wf-circle">7</div>
+        <div class="wf-content">
+          <div class="wf-title">Distribute the 5 shares to separate locations</div>
+          <div class="wf-desc">
+            Store each share independently — <strong>never two shares in the same place</strong>:
+            <div class="pill-row">
+              <span class="pill cloud">S1 → Google Drive text file (private folder)</span>
+              <span class="pill cloud">S2 → Yahoo/Gmail saved draft (never send)</span>
+              <span class="pill print">S3 → Printed QR code → physical safe / bank</span>
+              <span class="pill">S4 → Trusted family member (printed or in their vault)</span>
+              <span class="pill cloud">S5 → iCloud Note (locked with Face ID)</span>
+            </div>
+          </div>
+        </div>
+        <input type="checkbox" class="wf-check" onchange="updateProgress()" />
+      </div>
+
+      <div class="wf-step" id="wf-7">
+        <div class="wf-circle">8</div>
+        <div class="wf-content">
+          <div class="wf-title">Fill in &amp; print the Emergency Kit</div>
+          <div class="wf-desc">
+            Open <code>emergency-kit.md</code>, fill in all the blanks (share locations, K/N values,
+            vault access URL, your contact info). Print two copies:
+            <div class="pill-row">
+              <span class="pill print">Copy 1 → sealed envelope in your safe</span>
+              <span class="pill print">Copy 2 → trusted family member's keeping</span>
+            </div>
+            The kit contains zero secrets — it only describes where to find shares and how to use this tool.
+          </div>
+        </div>
+        <input type="checkbox" class="wf-check" onchange="updateProgress()" />
+      </div>
+
+      <div class="wf-step" id="wf-8">
+        <div class="wf-circle">9</div>
+        <div class="wf-content">
+          <div class="wf-title">Test end-to-end recovery</div>
+          <div class="wf-desc">
+            Do a dry run before you depend on this system:
+            <ol style="margin: 8px 0 0 18px; color: var(--muted); line-height: 1.8; font-size: .84rem">
+              <li>Pretend you only have shares S1, S3, S5 (3 of 5).</li>
+              <li>Go to <strong>🔗 Reconstruct Secret</strong> tab, paste those 3 shares.</li>
+              <li>Verify the reconstructed text matches your KeePass master password.</li>
+              <li>Download <code>vault.kdbx</code> from Google Drive on a fresh device.</li>
+              <li>Open it with KeePassXC using the reconstructed password.</li>
+              <li>Confirm you can see all your passwords.</li>
+            </ol>
+            <div class="pill-row" style="margin-top: 8px">
+              <span class="pill print">✅ If all steps pass — you're protected</span>
+            </div>
+          </div>
+        </div>
+        <input type="checkbox" class="wf-check" onchange="updateProgress()" />
+      </div>
+
+    </div><!-- /workflow -->
+
+    <!-- Access cheat-sheet -->
+    <div class="section-title">Day-to-day Access Cheat Sheet</div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">🏠 At home / regular device</span></div>
+      <ol style="margin: 0 0 0 18px; color: var(--muted); line-height: 2; font-size: .88rem">
+        <li>Open KeePassXC → enter master password from memory → done.</li>
+      </ol>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">✈️ Travelling — forgot password or new device</span></div>
+      <ol style="margin: 0 0 0 18px; color: var(--muted); line-height: 2; font-size: .88rem">
+        <li>Open this HTML file (saved locally or hosted online).</li>
+        <li>Collect any 3 of your 5 shares from your cloud accounts.</li>
+        <li>Go to <strong>🔗 Reconstruct</strong> → paste shares → get master password.</li>
+        <li>Download <code>vault.kdbx</code> from Google Drive / Dropbox.</li>
+        <li>Install KeePassXC → open vault with reconstructed password.</li>
+      </ol>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">🆘 Family emergency access</span></div>
+      <ol style="margin: 0 0 0 18px; color: var(--muted); line-height: 2; font-size: .88rem">
+        <li>Find the printed Emergency Kit.</li>
+        <li>Follow kit instructions to collect K shares from the listed locations.</li>
+        <li>Open this tool → Reconstruct → enter shares → copy password.</li>
+        <li>Download vault from any listed cloud URL → open with KeePassXC.</li>
+      </ol>
+    </div>
+
+    <!-- Maintenance reminders -->
+    <div class="section-title" style="margin-top: 24px">Maintenance Reminders</div>
+    <div class="info-box">
+      <strong>After changing your KeePass master password:</strong> re-split with the ✂️ Split tab,
+      redistribute all 5 new shares, update Emergency Kit, and run <code>sync-vault.sh</code>.<br/><br/>
+      <strong>Recommended review schedule:</strong> every 6 months — verify all share locations are still
+      accessible and that cloud copies of <code>vault.kdbx</code> are up to date.
+    </div>
+
+  </div><!-- /tab-hybrid -->
+
+</div>
+
+<!-- ════════════════════════════════════════════
+     Inline QR-code encoder (MIT) — qrcodejs minimal port
+     Only used for share QR rendering; runs entirely in browser.
+     Source: adapted from davidshimjs/qrcodejs (MIT licence)
+     ════════════════════════════════════════════ -->
+<script>
+/* ── Tiny QR encoder (only Mode=Byte, ECC=M, versions 1-10) ─────────────── */
+/* Full credit: Kazuhiko Arase, davidshimjs — MIT licence                     */
+var QRCode = (function () {
+  'use strict';
+  // Galois field tables
+  var QRMath = (function () {
+    var EXP_TABLE = new Array(256), LOG_TABLE = new Array(256);
+    for (var i = 0; i < 8; i++) EXP_TABLE[i] = 1 << i;
+    for (var i = 8; i < 256; i++) EXP_TABLE[i] = EXP_TABLE[i - 4] ^ EXP_TABLE[i - 5] ^ EXP_TABLE[i - 6] ^ EXP_TABLE[i - 8];
+    for (var i = 0; i < 255; i++) LOG_TABLE[EXP_TABLE[i]] = i;
+    return {
+      glog: function (n) { if (n < 1) throw 'glog(' + n + ')'; return LOG_TABLE[n]; },
+      gexp: function (n) { while (n < 0) n += 255; while (n >= 256) n -= 255; return EXP_TABLE[n]; },
+      multiply: function (a, b) { if (a == 0 || b == 0) return 0; return EXP_TABLE[(LOG_TABLE[a] + LOG_TABLE[b]) % 255]; }
+    };
+  })();
+
+  function QRPolynomial(num, shift) {
+    if (num.length == undefined) throw num.length + '/' + shift;
+    var offset = 0;
+    while (offset < num.length && num[offset] == 0) offset++;
+    this.num = new Array(num.length - offset + shift);
+    for (var i = 0; i < num.length - offset; i++) this.num[i] = num[i + offset];
+  }
+  QRPolynomial.prototype = {
+    get: function (i) { return this.num[i]; },
+    getLength: function () { return this.num.length; },
+    multiply: function (e) {
+      var num = new Array(this.getLength() + e.getLength() - 1);
+      for (var i = 0; i < num.length; i++) num[i] = 0;
+      for (var i = 0; i < this.getLength(); i++)
+        for (var j = 0; j < e.getLength(); j++)
+          num[i + j] ^= QRMath.multiply(this.get(i), e.get(j));
+      return new QRPolynomial(num, 0);
+    },
+    mod: function (e) {
+      if (this.getLength() - e.getLength() < 0) return this;
+      var ratio = QRMath.glog(this.get(0)) - QRMath.glog(e.get(0));
+      var num = new Array(this.getLength());
+      for (var i = 0; i < this.getLength(); i++) num[i] = this.get(i);
+      for (var i = 0; i < e.getLength(); i++) num[i] ^= QRMath.gexp(QRMath.glog(e.get(i)) + ratio);
+      return new QRPolynomial(num, 0).mod(e);
+    }
+  };
+
+  var PATTERN_POSITION_TABLE = [
+    [], [6, 18], [6, 22], [6, 26], [6, 30], [6, 34],
+    [6, 22, 38], [6, 24, 42], [6, 26, 46], [6, 28, 50], [6, 30, 54]
+  ];
+  var G15 = (1 << 10) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 2) | (1 << 1) | (1 << 0);
+  var G18 = (1 << 12) | (1 << 11) | (1 << 10) | (1 << 9) | (1 << 8) | (1 << 5) | (1 << 2) | (1 << 0);
+  var G15_MASK = (1 << 14) | (1 << 12) | (1 << 10) | (1 << 4) | (1 << 1);
+
+  var QRUtil = {
+    getBCHTypeInfo: function (data) {
+      var d = data << 10;
+      while (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(G15) >= 0)
+        d ^= (G15 << (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(G15)));
+      return ((data << 10) | d) ^ G15_MASK;
+    },
+    getBCHTypeNumber: function (data) {
+      var d = data << 12;
+      while (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(G18) >= 0)
+        d ^= (G18 << (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(G18)));
+      return (data << 12) | d;
+    },
+    getBCHDigit: function (data) {
+      var digit = 0;
+      while (data != 0) { digit++; data >>>= 1; }
+      return digit;
+    },
+    getPatternPosition: function (typeNumber) { return PATTERN_POSITION_TABLE[typeNumber - 1]; },
+    getMask: function (maskPattern, i, j) {
+      switch (maskPattern) {
+        case 0: return (i + j) % 2 == 0;
+        case 1: return i % 2 == 0;
+        case 2: return j % 3 == 0;
+        case 3: return (i + j) % 3 == 0;
+        case 4: return (Math.floor(i / 2) + Math.floor(j / 3)) % 2 == 0;
+        case 5: return (i * j) % 2 + (i * j) % 3 == 0;
+        case 6: return ((i * j) % 2 + (i * j) % 3) % 2 == 0;
+        case 7: return ((i * j) % 3 + (i + j) % 2) % 2 == 0;
+      }
+    },
+    getErrorCorrectPolynomial: function (errorCorrectLength) {
+      var a = new QRPolynomial([1], 0);
+      for (var i = 0; i < errorCorrectLength; i++) a = a.multiply(new QRPolynomial([1, QRMath.gexp(i)], 0));
+      return a;
+    },
+    getLengthInBits: function (mode, type) {
+      if (type >= 1 && type < 10) {
+        if (mode == 4) return 8;
+      } else if (type < 27) {
+        if (mode == 4) return 16;
+      } else {
+        if (mode == 4) return 16;
+      }
+      throw 'mode:' + mode + ';type:' + type;
+    },
+    getLostPoint: function (qrCode) {
+      var moduleCount = qrCode.getModuleCount(), lostPoint = 0;
+      for (var row = 0; row < moduleCount; row++) {
+        for (var col = 0; col < moduleCount; col++) {
+          var sameCount = 0, dark = qrCode.isDark(row, col);
+          for (var r = -1; r <= 1; r++) {
+            if (row + r < 0 || moduleCount <= row + r) continue;
+            for (var c = -1; c <= 1; c++) {
+              if (col + c < 0 || moduleCount <= col + c) continue;
+              if (r == 0 && c == 0) continue;
+              if (dark == qrCode.isDark(row + r, col + c)) sameCount++;
+            }
+          }
+          if (sameCount > 5) lostPoint += (3 + sameCount - 5);
+        }
+      }
+      for (var row = 0; row < moduleCount - 1; row++)
+        for (var col = 0; col < moduleCount - 1; col++) {
+          var count = 0;
+          if (qrCode.isDark(row, col)) count++;
+          if (qrCode.isDark(row + 1, col)) count++;
+          if (qrCode.isDark(row, col + 1)) count++;
+          if (qrCode.isDark(row + 1, col + 1)) count++;
+          if (count == 0 || count == 4) lostPoint += 3;
+        }
+      for (var row = 0; row < moduleCount; row++)
+        for (var col = 0; col < moduleCount - 6; col++)
+          if (qrCode.isDark(row, col) && !qrCode.isDark(row, col + 1) && qrCode.isDark(row, col + 2) && qrCode.isDark(row, col + 3) && qrCode.isDark(row, col + 4) && !qrCode.isDark(row, col + 5) && qrCode.isDark(row, col + 6))
+            lostPoint += 40;
+      for (var col = 0; col < moduleCount; col++)
+        for (var row = 0; row < moduleCount - 6; row++)
+          if (qrCode.isDark(row, col) && !qrCode.isDark(row + 1, col) && qrCode.isDark(row + 2, col) && qrCode.isDark(row + 3, col) && qrCode.isDark(row + 4, col) && !qrCode.isDark(row + 5, col) && qrCode.isDark(row + 6, col))
+            lostPoint += 40;
+      var darkCount = 0;
+      for (var col = 0; col < moduleCount; col++)
+        for (var row = 0; row < moduleCount; row++)
+          if (qrCode.isDark(row, col)) darkCount++;
+      var ratio = Math.abs(100 * darkCount / moduleCount / moduleCount - 50) / 5;
+      lostPoint += ratio * 10;
+      return lostPoint;
+    }
+  };
+
+  function QRRSBlock(totalCount, dataCount) { this.totalCount = totalCount; this.dataCount = dataCount; }
+  QRRSBlock.RS_BLOCK_TABLE = [
+    [1, 26, 19], [1, 26, 16], [1, 26, 13], [1, 26, 9],
+    [1, 44, 34], [1, 44, 28], [1, 44, 22], [1, 44, 16],
+    [1, 70, 55], [1, 70, 44], [2, 35, 17], [2, 35, 13],
+    [1, 100, 80], [2, 50, 32], [2, 50, 24], [4, 25, 9],
+    [1, 134, 108], [2, 67, 43], [2, 33, 15, 2, 34, 16], [2, 33, 11, 2, 34, 12],
+    [2, 86, 68], [4, 43, 27], [4, 43, 19], [4, 43, 15],
+    [2, 98, 78], [4, 49, 31], [2, 32, 14, 4, 33, 15], [4, 39, 13, 1, 40, 14],
+    [2, 121, 97], [2, 60, 38, 2, 61, 39], [4, 40, 18, 2, 41, 19], [4, 40, 14, 2, 41, 15],
+    [2, 146, 116], [3, 58, 36, 2, 59, 37], [4, 36, 16, 4, 37, 17], [4, 36, 12, 4, 37, 13],
+    [2, 86, 68, 2, 87, 69], [4, 69, 43, 1, 70, 44], [6, 43, 19, 2, 44, 20], [6, 43, 15, 2, 44, 16],
+    [4, 101, 81], [1, 80, 50, 4, 81, 51], [4, 50, 22, 4, 51, 23], [3, 36, 12, 8, 37, 13]
+  ];
+  QRRSBlock.getRSBlocks = function (typeNumber, errorCorrectionLevel) {
+    var rsBlock = QRRSBlock.getRsBlockTable(typeNumber, errorCorrectionLevel);
+    if (!rsBlock) throw 'bad rs block @ typeNumber:' + typeNumber + '/errorCorrectionLevel:' + errorCorrectionLevel;
+    var length = rsBlock.length / 3, list = [];
+    for (var i = 0; i < length; i++) {
+      var count = rsBlock[i * 3 + 0], totalCount = rsBlock[i * 3 + 1], dataCount = rsBlock[i * 3 + 2];
+      for (var j = 0; j < count; j++) list.push(new QRRSBlock(totalCount, dataCount));
+    }
+    return list;
+  };
+  QRRSBlock.getRsBlockTable = function (typeNumber, errorCorrectionLevel) {
+    switch (errorCorrectionLevel) {
+      case 1: return QRRSBlock.RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 0];
+      case 0: return QRRSBlock.RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 1];
+      case 3: return QRRSBlock.RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 2];
+      case 2: return QRRSBlock.RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 3];
+    }
+  };
+
+  function QRBitBuffer() { this.buffer = []; this.length = 0; }
+  QRBitBuffer.prototype = {
+    get: function (index) { return ((this.buffer[Math.floor(index / 8)] >>> (7 - index % 8)) & 1) == 1; },
+    put: function (num, length) { for (var i = 0; i < length; i++) this.putBit(((num >>> (length - i - 1)) & 1) == 1); },
+    getLengthInBits: function () { return this.length; },
+    putBit: function (bit) {
+      var bufIndex = Math.floor(this.length / 8);
+      if (this.buffer.length <= bufIndex) this.buffer.push(0);
+      if (bit) this.buffer[bufIndex] |= (0x80 >>> (this.length % 8));
+      this.length++;
+    }
+  };
+
+  function _createData(typeNumber, errorCorrectionLevel, dataList) {
+    var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, errorCorrectionLevel);
+    var buffer = new QRBitBuffer();
+    for (var i = 0; i < dataList.length; i++) {
+      var data = dataList[i];
+      buffer.put(data.mode, 4);
+      buffer.put(data.getLength(), QRUtil.getLengthInBits(data.mode, typeNumber));
+      data.write(buffer);
+    }
+    var totalDataCount = 0;
+    for (var i = 0; i < rsBlocks.length; i++) totalDataCount += rsBlocks[i].dataCount;
+    if (buffer.getLengthInBits() > totalDataCount * 8) throw 'code length overflow. (' + buffer.getLengthInBits() + '>' + totalDataCount * 8 + ')';
+    if (buffer.getLengthInBits() + 4 <= totalDataCount * 8) buffer.put(0, 4);
+    while (buffer.getLengthInBits() % 8 != 0) buffer.putBit(false);
+    while (true) {
+      if (buffer.getLengthInBits() >= totalDataCount * 8) break;
+      buffer.put(0xEC, 8);
+      if (buffer.getLengthInBits() >= totalDataCount * 8) break;
+      buffer.put(0x11, 8);
+    }
+    return _createBytes(buffer, rsBlocks);
+  }
+
+  function _createBytes(buffer, rsBlocks) {
+    var offset = 0, maxDcCount = 0, maxEcCount = 0;
+    var dcdata = new Array(rsBlocks.length), ecdata = new Array(rsBlocks.length);
+    for (var r = 0; r < rsBlocks.length; r++) {
+      var dcCount = rsBlocks[r].dataCount, ecCount = rsBlocks[r].totalCount - dcCount;
+      maxDcCount = Math.max(maxDcCount, dcCount); maxEcCount = Math.max(maxEcCount, ecCount);
+      dcdata[r] = new Array(dcCount);
+      for (var i = 0; i < dcdata[r].length; i++) dcdata[r][i] = 0xff & buffer.buffer[i + offset];
+      offset += dcCount;
+      var rsPoly = QRUtil.getErrorCorrectPolynomial(ecCount);
+      var rawPoly = new QRPolynomial(dcdata[r], rsPoly.getLength() - 1);
+      var modPoly = rawPoly.mod(rsPoly);
+      ecdata[r] = new Array(rsPoly.getLength() - 1);
+      for (var i = 0; i < ecdata[r].length; i++) {
+        var modIndex = i + modPoly.getLength() - ecdata[r].length;
+        ecdata[r][i] = (modIndex >= 0) ? modPoly.get(modIndex) : 0;
+      }
+    }
+    var totalCodeCount = 0;
+    for (var i = 0; i < rsBlocks.length; i++) totalCodeCount += rsBlocks[i].totalCount;
+    var data = new Array(totalCodeCount), index = 0;
+    for (var i = 0; i < maxDcCount; i++) for (var r = 0; r < rsBlocks.length; r++) { if (i < dcdata[r].length) data[index++] = dcdata[r][i]; }
+    for (var i = 0; i < maxEcCount; i++) for (var r = 0; r < rsBlocks.length; r++) { if (i < ecdata[r].length) data[index++] = ecdata[r][i]; }
+    return data;
+  }
+
+  function QRCodeModel(typeNumber, errorCorrectionLevel) {
+    this.typeNumber = typeNumber;
+    this.errorCorrectionLevel = errorCorrectionLevel;
+    this.modules = null; this.moduleCount = 0;
+    this.dataCache = null; this.dataList = [];
+  }
+  QRCodeModel.prototype = {
+    addData: function (data) {
+      var newData = new QR8bitByte(data);
+      this.dataList.push(newData); this.dataCache = null;
+    },
+    isDark: function (row, col) {
+      if (row < 0 || this.moduleCount <= row || col < 0 || this.moduleCount <= col) throw row + ',' + col;
+      return this.modules[row][col];
+    },
+    getModuleCount: function () { return this.moduleCount; },
+    make: function () { this._makeImpl(false, this._getBestMaskPattern()); },
+    _makeImpl: function (test, maskPattern) {
+      this.moduleCount = this.typeNumber * 4 + 17;
+      this.modules = (function (mc) { var a = new Array(mc); for (var r = 0; r < mc; r++) { a[r] = new Array(mc); for (var c = 0; c < mc; c++) a[r][c] = null; } return a; })(this.moduleCount);
+      this._setupPositionProbePattern(0, 0); this._setupPositionProbePattern(this.moduleCount - 7, 0); this._setupPositionProbePattern(0, this.moduleCount - 7);
+      this._setupPositionAdjustPattern(); this._setupTimingPattern();
+      this._setupTypeInfo(test, maskPattern);
+      if (this.typeNumber >= 7) this._setupTypeNumber(test);
+      if (this.dataCache == null) this.dataCache = _createData(this.typeNumber, this.errorCorrectionLevel, this.dataList);
+      this._mapData(this.dataCache, maskPattern);
+    },
+    _setupPositionProbePattern: function (row, col) {
+      for (var r = -1; r <= 7; r++) {
+        if (row + r <= -1 || this.moduleCount <= row + r) continue;
+        for (var c = -1; c <= 7; c++) {
+          if (col + c <= -1 || this.moduleCount <= col + c) continue;
+          if ((0 <= r && r <= 6 && (c == 0 || c == 6)) || (0 <= c && c <= 6 && (r == 0 || r == 6)) || (2 <= r && r <= 4 && 2 <= c && c <= 4))
+            this.modules[row + r][col + c] = true;
+          else this.modules[row + r][col + c] = false;
+        }
+      }
+    },
+    _getBestMaskPattern: function () {
+      var minLostPoint = 0, pattern = 0;
+      for (var i = 0; i < 8; i++) {
+        this._makeImpl(true, i);
+        var lostPoint = QRUtil.getLostPoint(this);
+        if (i == 0 || minLostPoint > lostPoint) { minLostPoint = lostPoint; pattern = i; }
+      }
+      return pattern;
+    },
+    _setupTimingPattern: function () {
+      for (var r = 8; r < this.moduleCount - 8; r++) { if (this.modules[r][6] != null) continue; this.modules[r][6] = (r % 2 == 0); }
+      for (var c = 8; c < this.moduleCount - 8; c++) { if (this.modules[6][c] != null) continue; this.modules[6][c] = (c % 2 == 0); }
+    },
+    _setupPositionAdjustPattern: function () {
+      var pos = QRUtil.getPatternPosition(this.typeNumber);
+      for (var i = 0; i < pos.length; i++) for (var j = 0; j < pos.length; j++) {
+        var row = pos[i], col = pos[j];
+        if (this.modules[row][col] != null) continue;
+        for (var r = -2; r <= 2; r++) for (var c = -2; c <= 2; c++) {
+          if (r == -2 || r == 2 || c == -2 || c == 2 || (r == 0 && c == 0)) this.modules[row + r][col + c] = true;
+          else this.modules[row + r][col + c] = false;
+        }
+      }
+    },
+    _setupTypeNumber: function (test) {
+      var bits = QRUtil.getBCHTypeNumber(this.typeNumber);
+      for (var i = 0; i < 18; i++) { var mod = (!test && ((bits >> i) & 1) == 1); this.modules[Math.floor(i / 3)][i % 3 + this.moduleCount - 8 - 3] = mod; }
+      for (var i = 0; i < 18; i++) { var mod = (!test && ((bits >> i) & 1) == 1); this.modules[i % 3 + this.moduleCount - 8 - 3][Math.floor(i / 3)] = mod; }
+    },
+    _setupTypeInfo: function (test, maskPattern) {
+      var data = (this.errorCorrectionLevel << 3) | maskPattern;
+      var bits = QRUtil.getBCHTypeInfo(data);
+      for (var i = 0; i < 15; i++) {
+        var mod = (!test && ((bits >> i) & 1) == 1);
+        if (i < 6) this.modules[i][8] = mod;
+        else if (i < 8) this.modules[i + 1][8] = mod;
+        else this.modules[this.moduleCount - 15 + i][8] = mod;
+      }
+      for (var i = 0; i < 15; i++) {
+        var mod = (!test && ((bits >> i) & 1) == 1);
+        if (i < 8) this.modules[8][this.moduleCount - i - 1] = mod;
+        else if (i < 9) this.modules[8][15 - i - 1 + 1] = mod;
+        else this.modules[8][15 - i - 1] = mod;
+      }
+      this.modules[this.moduleCount - 8][8] = (!test);
+    },
+    _mapData: function (data, maskPattern) {
+      var inc = -1, row = this.moduleCount - 1, bitIndex = 7, byteIndex = 0;
+      for (var col = this.moduleCount - 1; col > 0; col -= 2) {
+        if (col == 6) col--;
+        while (true) {
+          for (var c = 0; c < 2; c++) {
+            if (this.modules[row][col - c] == null) {
+              var dark = false;
+              if (byteIndex < data.length) dark = ((data[byteIndex] >>> bitIndex) & 1) == 1;
+              if (QRUtil.getMask(maskPattern, row, col - c)) dark = !dark;
+              this.modules[row][col - c] = dark; bitIndex--;
+              if (bitIndex == -1) { byteIndex++; bitIndex = 7; }
+            }
+          }
+          row += inc;
+          if (row < 0 || this.moduleCount <= row) { row -= inc; inc = -inc; break; }
+        }
+      }
+    }
+  };
+
+  function QR8bitByte(data) {
+    this.mode = 4; // MODE_8BIT_BYTE
+    this.data = data;
+    this.parsedData = [];
+    for (var i = 0; i < this.data.length; i++) {
+      var byteArray = [], code = this.data.charCodeAt(i);
+      if (code > 0x10000) { byteArray[0] = 0xF0 | ((code & 0x1C0000) >>> 18); byteArray[1] = 0x80 | ((code & 0x3F000) >>> 12); byteArray[2] = 0x80 | ((code & 0xFC0) >>> 6); byteArray[3] = 0x80 | (code & 0x3F); }
+      else if (code > 0x800) { byteArray[0] = 0xE0 | ((code & 0xF000) >>> 12); byteArray[1] = 0x80 | ((code & 0xFC0) >>> 6); byteArray[2] = 0x80 | (code & 0x3F); }
+      else if (code > 0x80) { byteArray[0] = 0xC0 | ((code & 0x7C0) >>> 6); byteArray[1] = 0x80 | (code & 0x3F); }
+      else byteArray[0] = code;
+      this.parsedData.push(byteArray);
+    }
+    this.parsedData = Array.prototype.concat.apply([], this.parsedData);
+    if (this.parsedData.length != this.data.length) { this.parsedData.unshift(191); this.parsedData.unshift(187); this.parsedData.unshift(239); }
+  }
+  QR8bitByte.prototype = {
+    mode: 4,
+    getLength: function () { return this.parsedData.length; },
+    write: function (buffer) { for (var i = 0; i < this.parsedData.length; i++) buffer.put(this.parsedData[i], 8); }
+  };
+
+  function drawQR(canvas, text, cellSize) {
+    cellSize = cellSize || 4;
+    var qr = new QRCodeModel(-1, 1);
+    // auto-detect typeNumber
+    for (var tn = 1; tn <= 10; tn++) {
+      try {
+        qr.typeNumber = tn; qr.dataCache = null; qr.dataList = [];
+        qr.addData(text); qr.make();
+        break;
+      } catch (e) { if (tn === 10) throw e; }
+    }
+    var mc = qr.getModuleCount();
+    var pad = cellSize * 2;
+    canvas.width = canvas.height = mc * cellSize + pad * 2;
+    var ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#000000';
+    for (var row = 0; row < mc; row++)
+      for (var col = 0; col < mc; col++)
+        if (qr.isDark(row, col))
+          ctx.fillRect(col * cellSize + pad, row * cellSize + pad, cellSize, cellSize);
+  }
+
+  return { draw: drawQR };
+})();
+</script>
+
+<script>
+/* ══════════════════════════════════════════════════════
+   Shamir's Secret Sharing over GF(2^8)
+   Irreducible polynomial: x^8 + x^4 + x^3 + x + 1 (0x11b)
+   Each byte of the secret is processed independently.
+   Share format (base64url):  <index_byte><share_bytes...>
+   Human-readable string:     "SH-<K>-<N>-<shareIndex>-<base64url>"
+   ══════════════════════════════════════════════════════ */
+var SSS = (function () {
+  'use strict';
+  var PRIME = 0x11b; // AES/GF(256) irreducible poly
+
+  function gfMul(a, b) {
+    var p = 0;
+    for (var i = 0; i < 8; i++) {
+      if (b & 1) p ^= a;
+      var hiBit = a & 0x80;
+      a = (a << 1) & 0xff;
+      if (hiBit) a ^= (PRIME & 0xff);
+      b >>= 1;
+    }
+    return p;
+  }
+
+  function gfInv(a) {
+    // Extended Euclidean over GF(256) — brute force for small field
+    if (a === 0) throw 'GF inverse of 0';
+    for (var b = 1; b < 256; b++) if (gfMul(a, b) === 1) return b;
+    throw 'no inverse';
+  }
+
+  function evalPoly(coeffs, x) {
+    // Horner's method
+    var result = 0;
+    for (var i = coeffs.length - 1; i >= 0; i--)
+      result = gfMul(result, x) ^ coeffs[i];
+    return result;
+  }
+
+  function randomByte() {
+    var arr = new Uint8Array(1);
+    crypto.getRandomValues(arr);
+    return arr[0];
+  }
+
+  /**
+   * Split secret (string) into n shares, requiring k to reconstruct.
+   * Returns array of Uint8Arrays, each prefixed with the share index (1-based).
+   */
+  function split(secret, k, n) {
+    if (k < 2 || n < k || n > 255) throw 'Invalid k/n';
+    var bytes = new TextEncoder().encode(secret);
+    var len = bytes.length;
+    // shareData[i] = Uint8Array of length len for share (i+1)
+    var shareData = [];
+    for (var i = 0; i < n; i++) shareData.push(new Uint8Array(len));
+
+    for (var byteIdx = 0; byteIdx < len; byteIdx++) {
+      // Build polynomial: coeffs[0] = secret byte, coeffs[1..k-1] = random
+      var coeffs = new Array(k);
+      coeffs[0] = bytes[byteIdx];
+      for (var j = 1; j < k; j++) {
+        var r;
+        do { r = randomByte(); } while (r === 0 && j < k - 1);
+        coeffs[j] = r;
+      }
+      for (var i = 0; i < n; i++) {
+        shareData[i][byteIdx] = evalPoly(coeffs, i + 1);
+      }
+    }
+
+    return shareData.map(function (data, idx) {
+      var buf = new Uint8Array(1 + data.length);
+      buf[0] = idx + 1; // 1-based index
+      buf.set(data, 1);
+      return buf;
+    });
+  }
+
+  /**
+   * Reconstruct secret from k shares (each a Uint8Array with index prefix).
+   * Returns string or throws.
+   */
+  function reconstruct(shares) {
+    if (shares.length < 2) throw 'Need at least 2 shares';
+    var k = shares.length;
+    var len = shares[0].length - 1;
+
+    // Validate all shares have same data length
+    for (var i = 1; i < k; i++) if (shares[i].length - 1 !== len) throw 'Share length mismatch';
+
+    var xValues = shares.map(function (s) { return s[0]; });
+    // Check for duplicate x values
+    var xSet = new Set(xValues);
+    if (xSet.size !== k) throw 'Duplicate share indices';
+
+    var result = new Uint8Array(len);
+
+    for (var byteIdx = 0; byteIdx < len; byteIdx++) {
+      var yValues = shares.map(function (s) { return s[byteIdx + 1]; });
+      // Lagrange interpolation at x=0
+      var secret = 0;
+      for (var i = 0; i < k; i++) {
+        var num = 1, den = 1;
+        for (var j = 0; j < k; j++) {
+          if (i === j) continue;
+          num = gfMul(num, xValues[j]);
+          den = gfMul(den, xValues[i] ^ xValues[j]);
+        }
+        secret ^= gfMul(yValues[i], gfMul(num, gfInv(den)));
+      }
+      result[byteIdx] = secret;
+    }
+
+    return new TextDecoder().decode(result);
+  }
+
+  // Encode share Uint8Array -> human-readable string
+  function encodeShare(buf, k, n) {
+    var b64 = btoa(String.fromCharCode.apply(null, buf))
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    return 'SH-K' + k + '-N' + n + '-S' + buf[0] + '-' + b64;
+  }
+
+  // Decode human-readable string -> Uint8Array
+  function decodeShare(str) {
+    str = str.trim();
+    var m = str.match(/^SH-K\d+-N\d+-S\d+-(.+)$/);
+    if (!m) {
+      throw 'Invalid share format: ' + str.substring(0, 30);
+    }
+    var b64 = m[1].replace(/-/g, '+').replace(/_/g, '/');
+    while (b64.length % 4) b64 += '=';
+    var bin = atob(b64);
+    var buf = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) {
+      buf[i] = bin.charCodeAt(i);
+    }
+    return buf;
+  }
+
+  return { split: split, reconstruct: reconstruct, encodeShare: encodeShare, decodeShare: decodeShare };
+})();
+</script>
+
+<script>
+/* ══════════════  Back-off logic  ══════════════ */
+var BACKOFF_KEY = 'sss_backoff';
+
+function getBackoff() {
+  try { return JSON.parse(localStorage.getItem(BACKOFF_KEY)) || { attempts: 0, until: 0 }; }
+  catch (e) { return { attempts: 0, until: 0 }; }
+}
+function saveBackoff(obj) { localStorage.setItem(BACKOFF_KEY, JSON.stringify(obj)); }
+
+function computeDelay(attempts) {
+  if (attempts <= 1) return 0;
+  var d = Math.pow(2, attempts - 2); // 0,1,2,4,8,…
+  return Math.min(d, 3600);
+}
+
+var backoffTimer = null;
+
+function startBackoffUI(until) {
+  var banner = document.getElementById('backoff-banner');
+  var counter = document.getElementById('backoff-counter');
+  var btn = document.getElementById('recon-btn');
+  banner.classList.add('visible');
+  btn.disabled = true;
+
+  if (backoffTimer) clearInterval(backoffTimer);
+  backoffTimer = setInterval(function () {
+    var remaining = Math.ceil((until - Date.now()) / 1000);
+    if (remaining <= 0) {
+      clearInterval(backoffTimer);
+      banner.classList.remove('visible');
+      btn.disabled = false;
+      counter.textContent = '0s';
+    } else {
+      counter.textContent = remaining + 's';
+    }
+  }, 500);
+}
+
+function checkBackoffOnLoad() {
+  var bo = getBackoff();
+  if (bo.until > Date.now()) startBackoffUI(bo.until);
+  document.getElementById('attempt-count').textContent = bo.attempts;
+}
+
+function recordFailedAttempt() {
+  var bo = getBackoff();
+  bo.attempts = (bo.attempts || 0) + 1;
+  var delay = computeDelay(bo.attempts) * 1000;
+  bo.until = Date.now() + delay;
+  saveBackoff(bo);
+  document.getElementById('attempt-count').textContent = bo.attempts;
+  if (delay > 0) startBackoffUI(bo.until);
+}
+
+function resetBackoff() {
+  saveBackoff({ attempts: 0, until: 0 });
+  document.getElementById('attempt-count').textContent = '0';
+}
+
+/* ══════════════  Auto-clear timer  ══════════════ */
+var clearTimer = null;
+
+function startClearCountdown() {
+  var secs = 30;
+  document.getElementById('clear-countdown').textContent = secs;
+  if (clearTimer) clearInterval(clearTimer);
+  clearTimer = setInterval(function () {
+    secs--;
+    document.getElementById('clear-countdown').textContent = secs;
+    if (secs <= 0) { clearResult(); }
+  }, 1000);
+}
+
+function clearResult() {
+  if (clearTimer) clearInterval(clearTimer);
+  document.getElementById('result-box').classList.remove('visible');
+  document.getElementById('result-secret').textContent = '';
+}
+
+/* ══════════════  Tabs  ══════════════ */
+function switchTab(name) {
+  ['split', 'reconstruct', 'hybrid'].forEach(function (t) {
+    document.getElementById('tab-' + t).classList.toggle('active', t === name);
+  });
+  document.querySelectorAll('.tab-btn').forEach(function (btn, i) {
+    var names = ['split', 'reconstruct', 'hybrid'];
+    btn.classList.toggle('active', names[i] === name);
+  });
+  if (name === 'reconstruct') checkBackoffOnLoad();
+  if (name === 'hybrid') { loadChecklistState(); updateProgress(); }
+}
+
+/* ══════════════  Hybrid checklist  ══════════════ */
+var CHECKLIST_KEY = 'sss_checklist';
+
+function loadChecklistState() {
+  var state = {};
+  try { state = JSON.parse(localStorage.getItem(CHECKLIST_KEY)) || {}; } catch (e) {}
+  document.querySelectorAll('.wf-check').forEach(function (cb, i) {
+    cb.checked = !!state[i];
+    cb.closest('.wf-step').classList.toggle('done', !!state[i]);
+  });
+}
+
+function updateProgress() {
+  var checks = document.querySelectorAll('.wf-check');
+  var done = 0, state = {};
+  checks.forEach(function (cb, i) {
+    if (cb.checked) done++;
+    state[i] = cb.checked;
+    cb.closest('.wf-step').classList.toggle('done', cb.checked);
+  });
+  var total = checks.length;
+  var pct = total ? Math.round(done / total * 100) : 0;
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('progress-text').textContent = done + ' / ' + total;
+  try { localStorage.setItem(CHECKLIST_KEY, JSON.stringify(state)); } catch (e) {}
+}
+
+/* ══════════════  Split  ══════════════ */
+var SHARE_DESTINATIONS = [
+  'Google Drive (text file)',
+  'Yahoo Mail draft (never send)',
+  'Printed QR code in physical safe',
+  'Trusted family member',
+  'iCloud Note',
+  'OneDrive document',
+  'Dropbox text file',
+  'Secure email draft (Proton/Tutanota)',
+  'Signal note-to-self',
+  'Password-protected USB'
+];
+
+function doSplit() {
+  var errEl = document.getElementById('split-error');
+  errEl.textContent = '';
+  var secret = document.getElementById('secret-input').value;
+  var n = parseInt(document.getElementById('n-input').value, 10);
+  var k = parseInt(document.getElementById('k-input').value, 10);
+
+  if (!secret) { errEl.textContent = '⚠️ Please enter a secret.'; return; }
+  if (isNaN(n) || n < 2 || n > 20) { errEl.textContent = '⚠️ N must be between 2 and 20.'; return; }
+  if (isNaN(k) || k < 2 || k > n) { errEl.textContent = '⚠️ K must be between 2 and N (' + n + ').'; return; }
+
+  var shares;
+  try { shares = SSS.split(secret, k, n); }
+  catch (e) { errEl.textContent = '⚠️ ' + e; return; }
+
+  var container = document.getElementById('shares-output');
+  container.innerHTML = '<div class="section-title" style="margin-top:28px">3 · Your Shares (store each in a different place)</div>' +
+    '<div class="info-box" style="margin-bottom:18px">Any <strong>' + k + ' of these ' + n + ' shares</strong> are enough to reconstruct your secret. ' +
+    'Each share is meaningless on its own. Copy/save each share to a separate location.</div>';
+
+  shares.forEach(function (shareBuf, idx) {
+    var encoded = SSS.encodeShare(shareBuf, k, n);
+    var dest = SHARE_DESTINATIONS[idx] || ('Location ' + (idx + 1));
+    var card = document.createElement('div');
+    card.className = 'card';
+
+    var canvasId = 'qr-' + idx;
+    card.innerHTML =
+      '<div class="card-header">' +
+        '<span class="card-title">Share ' + (idx + 1) + ' of ' + n + '</span>' +
+        '<span class="dest-tag">📍 ' + dest + '</span>' +
+      '</div>' +
+      '<div class="share-index">S' + (idx + 1) + ' · K=' + k + ' · N=' + n + '</div>' +
+      '<div class="share-text" id="share-text-' + idx + '">' + encoded + '</div>' +
+      '<div style="margin-top:10px; display:flex; align-items:center; gap:8px; flex-wrap:wrap">' +
+        '<button class="btn btn-sm btn-primary" onclick="copyShare(' + idx + ')">📋 Copy</button>' +
+        '<span class="copy-feedback" id="cf-' + idx + '">Copied!</span>' +
+        '<button class="btn btn-sm" style="background:var(--surface2);color:var(--muted)" onclick="toggleQR(\'' + canvasId + '\', \'' + encoded + '\')">🔲 Toggle QR</button>' +
+      '</div>' +
+      '<div class="qr-wrap" style="display:none" id="qr-wrap-' + canvasId + '">' +
+        '<canvas id="' + canvasId + '"></canvas>' +
+        '<div style="font-size:.72rem;color:var(--muted);margin-top:6px">Print and store securely</div>' +
+      '</div>';
+
+    container.appendChild(card);
+  });
+}
+
+function copyShare(idx) {
+  var text = document.getElementById('share-text-' + idx).textContent;
+  navigator.clipboard.writeText(text).then(function () {
+    var el = document.getElementById('cf-' + idx);
+    el.classList.add('show');
+    setTimeout(function () { el.classList.remove('show'); }, 1800);
+  });
+}
+
+function toggleQR(canvasId, text) {
+  var wrap = document.getElementById('qr-wrap-' + canvasId);
+  if (wrap.style.display === 'none') {
+    wrap.style.display = 'block';
+    var canvas = document.getElementById(canvasId);
+    if (!canvas.drawn) {
+      try { QRCode.draw(canvas, text, 4); canvas.drawn = true; }
+      catch (e) { wrap.innerHTML = '<div style="color:var(--muted);font-size:.8rem">⚠️ QR too large for this share. Use text copy instead.</div>'; }
+    }
+  } else {
+    wrap.style.display = 'none';
+  }
+}
+
+/* ══════════════  Reconstruct  ══════════════ */
+function buildReconInputs() {
+  var k = parseInt(document.getElementById('k-recon-input').value, 10) || 3;
+  if (k < 2) k = 2; if (k > 20) k = 20;
+  var container = document.getElementById('recon-inputs');
+  // preserve existing values
+  var existing = [];
+  container.querySelectorAll('textarea').forEach(function (ta) { existing.push(ta.value); });
+  container.innerHTML = '';
+  for (var i = 0; i < k; i++) {
+    var row = document.createElement('div');
+    row.className = 'recon-share';
+    row.innerHTML =
+      '<div class="recon-num">' + (i + 1) + '</div>' +
+      '<textarea placeholder="Paste share ' + (i + 1) + ' here…" autocomplete="off" spellcheck="false">' +
+        (existing[i] || '') + '</textarea>';
+    container.appendChild(row);
+  }
+}
+
+function doReconstruct() {
+  var errEl = document.getElementById('recon-error');
+  errEl.textContent = '';
+
+  // Check back-off
+  var bo = getBackoff();
+  if (bo.until > Date.now()) {
+    errEl.textContent = '⏳ Back-off active — please wait.';
+    return;
+  }
+
+  var textAreas = document.querySelectorAll('#recon-inputs textarea');
+  var shareStrings = [];
+  textAreas.forEach(function (ta) { shareStrings.push(ta.value.trim()); });
+
+  if (shareStrings.some(function (s) { return !s; })) {
+    errEl.textContent = '⚠️ Please fill in all share fields.';
+    return;
+  }
+
+  var shares;
+  try {
+    shares = shareStrings.map(function (s) { return SSS.decodeShare(s); });
+  } catch (e) {
+    errEl.textContent = '⚠️ ' + e;
+    recordFailedAttempt();
+    return;
+  }
+
+  var secret;
+  try {
+    secret = SSS.reconstruct(shares);
+  } catch (e) {
+    recordFailedAttempt();
+    errEl.textContent = '⚠️ Reconstruction failed — wrong or corrupted shares? (' + e + ')';
+    return;
+  }
+
+  // Success — reset back-off
+  resetBackoff();
+
+  document.getElementById('result-secret').textContent = secret;
+  document.getElementById('result-box').classList.add('visible');
+  startClearCountdown();
+}
+
+/* ══════════════  Init  ══════════════ */
+window.addEventListener('DOMContentLoaded', function () {
+  buildReconInputs();
+  checkBackoffOnLoad();
+
+  // Sync K input with N to prevent K > N
+  document.getElementById('n-input').addEventListener('change', function () {
+    var n = parseInt(this.value, 10);
+    var kEl = document.getElementById('k-input');
+    if (parseInt(kEl.value, 10) > n) kEl.value = n;
+  });
+});
+</script>
+</body>
+</html>
+
